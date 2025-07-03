@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Voice Assistant Dashboard</title>
+    <title>AI Voice Assistant</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         * {
@@ -13,274 +13,871 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1a1a;
+            line-height: 1.5;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 400px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
+            min-height: 100vh;
+            position: relative;
         }
 
+        /* Header */
         .header {
-            background: linear-gradient(135deg, #2c3e50, #34495e);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e9ecef;
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .app-icon {
+            width: 24px;
+            height: 24px;
+            background: #007bff;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
-            padding: 30px;
-            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
         }
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+        .app-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
         }
 
-        .header p {
-            opacity: 0.8;
-            font-size: 1.1em;
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .dashboard {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            padding: 30px;
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #dc3545;
         }
 
-        .panel {
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        .status-dot.connecting {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 0 20px 20px;
+        }
+
+        /* Section Styles */
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid #e9ecef;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+        }
+
+        /* Call Controls */
+        .phone-input-group {
+            margin-bottom: 16px;
+        }
+
+        .phone-label {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .phone-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
             background: #f8f9fa;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
 
-        .panel h3 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            font-size: 1.3em;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
+        .call-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #6c757d;
         }
 
         .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            margin-right: 10px;
+            background: #6c757d;
         }
 
-        .status-idle { background-color: #95a5a6; }
-        .status-ringing { background-color: #f39c12; animation: pulse 1s infinite; }
-        .status-active { background-color: #27ae60; }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+        .status-indicator.active {
+            background: #28a745;
         }
 
-        .call-controls {
+        .status-indicator.ringing {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+
+        .call-buttons {
             display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 16px;
         }
 
-        input[type="tel"] {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-        }
-
-        button {
+        .btn {
             padding: 12px 24px;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .btn-primary {
-            background: #3498db;
+            background: #28a745;
             color: white;
+            flex: 1;
         }
 
         .btn-primary:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
+            background: #218838;
         }
 
-        .btn-danger {
-            background: #e74c3c;
-            color: white;
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #e9ecef;
+            padding: 12px 16px;
         }
 
-        .btn-danger:hover {
-            background: #c0392b;
-            transform: translateY(-2px);
+        .btn-secondary:hover {
+            background: #e9ecef;
         }
 
-        .btn-success {
-            background: #27ae60;
-            color: white;
+        .secondary-buttons {
+            display: flex;
+            gap: 12px;
         }
 
-        .btn-success:hover {
-            background: #229954;
-            transform: translateY(-2px);
-        }
-
-        .transcription-box {
-            background: white;
-            border: 2px solid #ecf0f1;
-            border-radius: 10px;
-            padding: 20px;
-            min-height: 150px;
+        /* Voice Settings */
+        .voice-id-section {
             margin-bottom: 20px;
-            font-family: monospace;
-            line-height: 1.6;
         }
 
-        .reply-input {
+        .voice-id-label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        .voice-id-value {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            color: #6c757d;
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .voice-id-description {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 12px;
+        }
+
+        .btn-preview {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .slider-group {
+            margin-bottom: 16px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #1a1a1a;
+        }
+
+        .slider-value {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .slider {
             width: 100%;
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            margin-bottom: 15px;
+            height: 4px;
+            border-radius: 2px;
+            background: #e9ecef;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Recent Calls */
+        .call-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .call-item:last-child {
+            border-bottom: none;
+        }
+
+        .call-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .call-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #ffe6e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #dc3545;
+            font-size: 14px;
+        }
+
+        .call-icon.success {
+            background: #e6f7e6;
+            color: #28a745;
+        }
+
+        .call-details {
+            flex: 1;
+        }
+
+        .call-number {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1a1a1a;
+        }
+
+        .call-time {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .call-chevron {
+            color: #dee2e6;
             font-size: 16px;
+        }
+
+        /* Live Transcript */
+        .transcript-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .transcript-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #28a745;
+        }
+
+        .transcript-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .demo-toggle {
+            font-size: 12px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .transcript-content {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 16px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .transcript-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .transcript-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        .transcript-action {
+            background: none;
+            border: none;
+            color: #6c757d;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Smart Replies */
+        .smart-replies-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .gpt-badge {
+            font-size: 10px;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .btn-regenerate {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        .custom-reply-section {
+            margin-bottom: 16px;
+        }
+
+        .custom-reply-label {
+            font-size: 14px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .custom-reply-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
             resize: vertical;
             min-height: 80px;
+            margin-bottom: 12px;
         }
 
-        .smart-replies {
+        .reply-actions {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
+            gap: 12px;
+        }
+
+        .btn-send {
+            background: #007bff;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-preview-reply {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #e9ecef;
+            padding: 8px 16px;
+        }
+
+        /* Voice Memory System */
+        .memory-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             margin-bottom: 20px;
         }
 
-        .smart-reply-btn {
-            background: #ecf0f1;
-            border: 2px solid #bdc3c7;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: left;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        .memory-badge {
+            background: #e6f7e6;
+            color: #28a745;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
         }
 
-        .smart-reply-btn:hover {
-            background: #d5dbdb;
-            border-color: #95a5a6;
+        .memory-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
         }
 
-        .conversation-history {
-            max-height: 300px;
-            overflow-y: auto;
-            background: white;
-            border: 2px solid #ecf0f1;
-            border-radius: 10px;
-            padding: 15px;
+        .memory-stat {
+            text-align: center;
         }
 
-        .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 8px;
+        .memory-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a1a1a;
+            display: block;
         }
 
-        .message.user {
+        .memory-stat-label {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .memory-description {
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+
+        .memory-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .memory-action {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .btn-export {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #e9ecef;
+        }
+
+        .btn-retrain {
             background: #e3f2fd;
-            border-left: 4px solid #2196f3;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
         }
 
-        .message.bot {
-            background: #f3e5f5;
-            border-left: 4px solid #9c27b0;
+        .btn-clear {
+            background: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
         }
 
-        .message-time {
-            font-size: 0.8em;
-            color: #666;
-            margin-bottom: 5px;
+        /* Footer */
+        .footer {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 16px 20px;
+            border-top: 1px solid #e9ecef;
+            background: white;
+            position: sticky;
+            bottom: 0;
         }
 
-        .full-width {
-            grid-column: 1 / -1;
+        .footer-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: #6c757d;
+            text-decoration: none;
         }
 
-        @media (max-width: 768px) {
-            .dashboard {
-                grid-template-columns: 1fr;
+        .footer-item.active {
+            color: #007bff;
+        }
+
+        .footer-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                max-width: 100%;
             }
+            
+            .main-content {
+                padding: 0 16px 16px;
+            }
+            
+            .section {
+                padding: 16px;
+            }
+        }
+
+        /* Icons */
+        .icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+        }
+
+        /* Hidden elements for functionality */
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <div class="header">
-            <h1>🎤 AI Voice Assistant</h1>
-            <p>Steve Perry AI Voice Assistant Dashboard</p>
+            <div class="header-left">
+                <div class="app-icon">AI</div>
+                <div class="app-title">AI Voice Assistant</div>
+            </div>
+            <div class="header-right">
+                <div class="status-dot" id="connectionStatus"></div>
+                <div style="color: #6c757d; font-size: 12px;">●</div>
+                <div style="color: #6c757d; font-size: 12px;">⚙</div>
+            </div>
         </div>
 
-        <div class="dashboard">
-            <!-- Call Control Panel -->
-            <div class="panel">
-                <h3>📞 Call Control</h3>
-                <div class="call-controls">
-                    <input type="tel" id="phoneNumber" placeholder="+1234567890" value="+1234567890">
-                    <button class="btn-primary" onclick="startCall()">Start Call</button>
-                    <button class="btn-danger" onclick="endCall()">End Call</button>
-                </div>
-                <div>
-                    <strong>Status:</strong> 
-                    <span class="status-indicator" id="statusIndicator"></span>
-                    <span id="callStatus">Idle</span>
-                </div>
-            </div>
-
-            <!-- Live Transcription -->
-            <div class="panel">
-                <h3>🎯 Live Transcription</h3>
-                <div class="transcription-box" id="transcription">
-                    Waiting for speech...
-                </div>
-            </div>
-
-            <!-- Reply Interface -->
-            <div class="panel">
-                <h3>💬 Reply Interface</h3>
-                <textarea class="reply-input" id="customReply" placeholder="Type your custom reply here..."></textarea>
-                <button class="btn-success" onclick="sendCustomReply()">Send Custom Reply</button>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Call Controls -->
+            <div class="section">
+                <div class="section-title">Call Controls</div>
                 
-                <div class="smart-replies" id="smartReplies">
-                    <!-- Smart replies will be populated here -->
+                <div class="phone-input-group">
+                    <label class="phone-label">Phone Number</label>
+                    <input type="tel" class="phone-input" id="phoneNumber" value="+1 (555) 123-4567">
+                </div>
+
+                <div class="call-status">
+                    <div class="status-indicator" id="callStatusIndicator"></div>
+                    <span id="callStatusText">Not Started</span>
+                </div>
+
+                <div class="call-buttons">
+                    <button class="btn btn-primary" id="startCallBtn" onclick="startCall()">
+                        📞 Start Call
+                    </button>
+                </div>
+
+                <div class="secondary-buttons">
+                    <button class="btn btn-secondary" id="muteBtn">🔇 Mute</button>
+                    <button class="btn btn-secondary" id="demoBtn">Demo</button>
                 </div>
             </div>
 
-            <!-- Conversation History -->
-            <div class="panel">
-                <h3>📝 Conversation History</h3>
-                <div class="conversation-history" id="conversationHistory">
-                    <!-- Conversation messages will appear here -->
+            <!-- Voice Settings -->
+            <div class="section">
+                <div class="section-title">Voice Settings</div>
+                
+                <div class="voice-id-section">
+                    <div class="voice-id-label">ElevenLabs Voice ID</div>
+                    <div class="voice-id-value" id="voiceIdDisplay">steve_perry_voice_id_abc123</div>
+                    <div class="voice-id-description">Customizable voice model for text-to-speech</div>
+                    <button class="btn btn-preview" onclick="previewVoice()">▶ Preview Voice</button>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Speech Rate</span>
+                        <span class="slider-value" id="speechRateValue">1.0x</span>
+                    </div>
+                    <input type="range" class="slider" id="speechRateSlider" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateSpeechRate(this.value)">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Voice Stability</span>
+                        <span class="slider-value" id="voiceStabilityValue">0.7</span>
+                    </div>
+                    <input type="range" class="slider" id="voiceStabilitySlider" min="0" max="1" step="0.1" value="0.7" oninput="updateVoiceStability(this.value)">
                 </div>
             </div>
 
-            <!-- Memory & Analytics -->
-            <div class="panel full-width">
-                <h3>🧠 Memory & Analytics</h3>
-                <button class="btn-primary" onclick="loadMemory()">Load Memory</button>
-                <button class="btn-primary" onclick="clearMemory()">Clear Memory</button>
-                <div id="memoryDisplay" style="margin-top: 15px; max-height: 200px; overflow-y: auto;"></div>
+            <!-- Recent Calls -->
+            <div class="section">
+                <div class="section-title">Recent Calls</div>
+                <div id="recentCallsList">
+                    <div class="call-item">
+                        <div class="call-info">
+                            <div class="call-icon">📞</div>
+                            <div class="call-details">
+                                <div class="call-number">+1 3236287547</div>
+                                <div class="call-time">8:33 AM • failed</div>
+                            </div>
+                        </div>
+                        <div class="call-chevron">›</div>
+                    </div>
+                    <div class="call-item">
+                        <div class="call-info">
+                            <div class="call-icon">📞</div>
+                            <div class="call-details">
+                                <div class="call-number">+1 3236287547</div>
+                                <div class="call-time">8:37 AM • failed</div>
+                            </div>
+                        </div>
+                        <div class="call-chevron">›</div>
+                    </div>
+                    <div class="call-item">
+                        <div class="call-info">
+                            <div class="call-icon">📞</div>
+                            <div class="call-details">
+                                <div class="call-number">+1 (555) 123-4567</div>
+                                <div class="call-time">8:40 AM • failed</div>
+                            </div>
+                        </div>
+                        <div class="call-chevron">›</div>
+                    </div>
+                    <div class="call-item">
+                        <div class="call-info">
+                            <div class="call-icon">📞</div>
+                            <div class="call-details">
+                                <div class="call-number">+1 9236287547</div>
+                                <div class="call-time">8:42 AM • failed</div>
+                            </div>
+                        </div>
+                        <div class="call-chevron">›</div>
+                    </div>
+                    <div class="call-item">
+                        <div class="call-info">
+                            <div class="call-icon">📞</div>
+                            <div class="call-details">
+                                <div class="call-number">+1 5551234567</div>
+                                <div class="call-time">8:48 AM • failed</div>
+                            </div>
+                        </div>
+                        <div class="call-chevron">›</div>
+                    </div>
+                    <div class="call-item">
+                        <div class="call-info">
+                            <div class="call-icon">📞</div>
+                            <div class="call-details">
+                                <div class="call-number">+1 (555) 123-4567</div>
+                                <div class="call-time">9:01 AM • failed</div>
+                            </div>
+                        </div>
+                        <div class="call-chevron">›</div>
+                    </div>
+                    <div class="call-item">
+                        <div class="call-info">
+                            <div class="call-icon success">📞</div>
+                            <div class="call-details">
+                                <div class="call-number">+1 (555) 123-4567</div>
+                                <div class="call-time">5:08 PM • failed</div>
+                            </div>
+                        </div>
+                        <div class="call-chevron">›</div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Live Transcript -->
+            <div class="section">
+                <div class="transcript-header">
+                    <div class="section-title">Live Transcript</div>
+                    <div class="transcript-controls">
+                        <div class="transcript-status">
+                            <div class="status-dot connected"></div>
+                            <span>Ready</span>
+                        </div>
+                        <a href="#" class="demo-toggle">Demo Mode</a>
+                        <div style="color: #dee2e6;">⬇</div>
+                    </div>
+                </div>
+                
+                <div class="transcript-content" id="transcriptContent">
+                    Start a call to see live transcription
+                </div>
+
+                <div class="transcript-footer">
+                    <div class="transcript-actions">
+                        <button class="transcript-action">
+                            📋 Clear
+                        </button>
+                        <button class="transcript-action">
+                            💾 Save
+                        </button>
+                    </div>
+                    <div>0 words • 0:00 duration</div>
+                </div>
+            </div>
+
+            <!-- Smart Replies -->
+            <div class="section">
+                <div class="smart-replies-header">
+                    <div class="section-title">
+                        Smart Replies
+                        <span class="gpt-badge">GPT-4 Powered</span>
+                    </div>
+                    <button class="btn-regenerate">🔄 Regenerate</button>
+                </div>
+
+                <div class="custom-reply-section">
+                    <label class="custom-reply-label">Custom Reply</label>
+                    <textarea class="custom-reply-input" id="customReplyInput" placeholder="Type your custom response here..."></textarea>
+                    <div class="reply-actions">
+                        <button class="btn btn-send" onclick="sendCustomReply()">Send Reply</button>
+                        <button class="btn btn-preview-reply">👁 Preview</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Memory System -->
+            <div class="section">
+                <div class="section-title">Voice Memory System</div>
+                
+                <div class="memory-status">
+                    <div class="memory-badge">Learning Active</div>
+                    <div style="color: #6c757d; font-size: 12px;">ℹ</div>
+                </div>
+
+                <div class="memory-stats">
+                    <div class="memory-stat">
+                        <span class="memory-stat-value" id="conversationCount">7</span>
+                        <span class="memory-stat-label">Conversations</span>
+                    </div>
+                    <div class="memory-stat">
+                        <span class="memory-stat-value" id="memoryEntries">0</span>
+                        <span class="memory-stat-label">Memory Entries</span>
+                    </div>
+                    <div class="memory-stat">
+                        <span class="memory-stat-value" id="accuracyPercent">85%</span>
+                        <span class="memory-stat-label">Accuracy</span>
+                    </div>
+                </div>
+
+                <div class="memory-description">
+                    No memory entries yet. Start conversations to build AI memory.
+                </div>
+
+                <div class="memory-actions">
+                    <button class="memory-action btn-export" onclick="exportMemory()">
+                        ⬇ Export Memory
+                    </button>
+                    <button class="memory-action btn-retrain" onclick="retrainModel()">
+                        🔄 Retrain Model
+                    </button>
+                    <button class="memory-action btn-clear" onclick="clearMemory()">
+                        🗑 Clear Memory
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <a href="#" class="footer-item active">
+                <div class="footer-icon">📞</div>
+                <span>Twilio</span>
+            </a>
+            <a href="#" class="footer-item">
+                <div class="footer-icon">🤖</div>
+                <span>OpenAI</span>
+            </a>
+            <a href="#" class="footer-item">
+                <div class="footer-icon">🎤</div>
+                <span>ElevenLabs</span>
+            </a>
+            <a href="#" class="footer-item">
+                <div class="footer-icon">💬</div>
+                <span>Whisper/transcript</span>
+            </a>
+            <a href="#" class="footer-item">
+                <div class="footer-icon">👁</div>
+                <span>View All</span>
+            </a>
         </div>
     </div>
 
@@ -290,6 +887,7 @@
 
         // Global state
         let currentCallSid = null;
+        let isCallActive = false;
 
         // Socket event handlers
         socket.on('call_status_update', function(data) {
@@ -305,71 +903,82 @@
 
         // UI Update Functions
         function updateCallStatus(status) {
-            const statusElement = document.getElementById('callStatus');
-            const indicatorElement = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('callStatusText');
+            const statusIndicator = document.getElementById('callStatusIndicator');
+            const connectionStatus = document.getElementById('connectionStatus');
             
-            statusElement.textContent = status;
-            indicatorElement.className = 'status-indicator';
+            statusText.textContent = status;
+            
+            // Update indicators
+            statusIndicator.className = 'status-indicator';
+            connectionStatus.className = 'status-dot';
             
             switch(status.toLowerCase()) {
                 case 'idle':
-                    indicatorElement.classList.add('status-idle');
+                case 'not started':
+                    statusIndicator.classList.add('');
+                    connectionStatus.classList.add('');
+                    isCallActive = false;
                     break;
                 case 'ringing':
-                    indicatorElement.classList.add('status-ringing');
+                    statusIndicator.classList.add('ringing');
+                    connectionStatus.classList.add('connecting');
                     break;
                 case 'in progress':
-                    indicatorElement.classList.add('status-active');
+                case 'active':
+                    statusIndicator.classList.add('active');
+                    connectionStatus.classList.add('connected');
+                    isCallActive = true;
                     break;
+            }
+            
+            // Update button states
+            updateButtonStates();
+        }
+
+        function updateButtonStates() {
+            const startBtn = document.getElementById('startCallBtn');
+            const muteBtn = document.getElementById('muteBtn');
+            
+            if (isCallActive) {
+                startBtn.textContent = '📞 End Call';
+                startBtn.style.background = '#dc3545';
+                muteBtn.disabled = false;
+            } else {
+                startBtn.textContent = '📞 Start Call';
+                startBtn.style.background = '#28a745';
+                muteBtn.disabled = true;
             }
         }
 
         function updateTranscription(text) {
-            document.getElementById('transcription').textContent = text || 'Waiting for speech...';
-        }
-
-        function updateSmartReplies(replies) {
-            const container = document.getElementById('smartReplies');
-            container.innerHTML = '';
-            
-            if (replies && replies.length > 0) {
-                replies.forEach((reply, index) => {
-                    const button = document.createElement('button');
-                    button.className = 'smart-reply-btn';
-                    button.textContent = `${index + 1}. ${reply}`;
-                    button.onclick = () => sendReply(reply);
-                    container.appendChild(button);
-                });
+            const transcriptContent = document.getElementById('transcriptContent');
+            if (text && text.trim()) {
+                transcriptContent.textContent = text;
+            } else {
+                transcriptContent.textContent = 'Start a call to see live transcription';
             }
         }
 
+        function updateSmartReplies(replies) {
+            // Smart replies would be populated here
+            console.log('Smart replies:', replies);
+        }
+
         function updateConversationHistory(history) {
-            const container = document.getElementById('conversationHistory');
-            container.innerHTML = '';
-            
+            // Update conversation count
             if (history && history.length > 0) {
-                history.slice(-10).forEach(message => {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = `message ${message.speaker}`;
-                    
-                    const timeDiv = document.createElement('div');
-                    timeDiv.className = 'message-time';
-                    timeDiv.textContent = new Date(message.timestamp).toLocaleTimeString();
-                    
-                    const contentDiv = document.createElement('div');
-                    contentDiv.textContent = message.message;
-                    
-                    messageDiv.appendChild(timeDiv);
-                    messageDiv.appendChild(contentDiv);
-                    container.appendChild(messageDiv);
-                });
-                
-                container.scrollTop = container.scrollHeight;
+                document.getElementById('conversationCount').textContent = history.length;
             }
         }
 
         // Call Control Functions
         async function startCall() {
+            if (isCallActive) {
+                await endCall();
+                return;
+            }
+
             const phoneNumber = document.getElementById('phoneNumber').value;
             if (!phoneNumber) {
                 alert('Please enter a phone number');
@@ -388,6 +997,7 @@
                 const data = await response.json();
                 if (data.success) {
                     console.log('Call started successfully');
+                    updateCallStatus('Ringing');
                 } else {
                     alert('Error starting call: ' + data.error);
                 }
@@ -405,6 +1015,7 @@
                 const data = await response.json();
                 if (data.success) {
                     console.log('Call ended successfully');
+                    updateCallStatus('Not Started');
                 } else {
                     alert('Error ending call: ' + data.error);
                 }
@@ -413,19 +1024,28 @@
             }
         }
 
+        // Voice Settings Functions
+        function updateSpeechRate(value) {
+            document.getElementById('speechRateValue').textContent = value + 'x';
+        }
+
+        function updateVoiceStability(value) {
+            document.getElementById('voiceStabilityValue').textContent = value;
+        }
+
+        function previewVoice() {
+            // Implement voice preview
+            console.log('Preview voice clicked');
+        }
+
         // Reply Functions
         async function sendCustomReply() {
-            const replyText = document.getElementById('customReply').value;
+            const replyText = document.getElementById('customReplyInput').value;
             if (!replyText.trim()) {
                 alert('Please enter a reply');
                 return;
             }
 
-            await sendReply(replyText);
-            document.getElementById('customReply').value = '';
-        }
-
-        async function sendReply(replyText) {
             try {
                 const response = await fetch('/send_reply', {
                     method: 'POST',
@@ -436,7 +1056,10 @@
                 });
 
                 const data = await response.json();
-                if (!data.success) {
+                if (data.success) {
+                    document.getElementById('customReplyInput').value = '';
+                    console.log('Reply sent successfully');
+                } else {
                     alert('Error sending reply: ' + data.error);
                 }
             } catch (error) {
@@ -445,29 +1068,68 @@
         }
 
         // Memory Functions
-        async function loadMemory() {
+        async function exportMemory() {
             try {
                 const response = await fetch('/get_memory');
                 const memory = await response.json();
                 
-                const display = document.getElementById('memoryDisplay');
-                display.innerHTML = '<pre>' + JSON.stringify(memory, null, 2) + '</pre>';
+                const dataStr = JSON.stringify(memory, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = 'voice_memory_export.json';
+                link.click();
             } catch (error) {
-                alert('Error loading memory: ' + error.message);
+                alert('Error exporting memory: ' + error.message);
             }
         }
 
-        function clearMemory() {
+        async function retrainModel() {
+            alert('Model retraining would be implemented here');
+        }
+
+        async function clearMemory() {
             if (confirm('Are you sure you want to clear all memory? This cannot be undone.')) {
-                // Implementation would require a backend endpoint
-                alert('Clear memory functionality would be implemented here');
+                try {
+                    const response = await fetch('/clear_memory', {
+                        method: 'POST'
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('Memory cleared successfully');
+                        document.getElementById('conversationCount').textContent = '0';
+                        document.getElementById('memoryEntries').textContent = '0';
+                    } else {
+                        alert('Error clearing memory: ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Error clearing memory: ' + error.message);
+                }
             }
         }
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
-            updateCallStatus('Idle');
+            updateCallStatus('Not Started');
+            
+            // Load voice ID from environment
+            const voiceId = 'steve_perry_voice_id_abc123'; // This would come from backend
+            document.getElementById('voiceIdDisplay').textContent = voiceId;
+            
             console.log('Dashboard initialized');
+        });
+
+        // Socket connection handlers
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            document.getElementById('connectionStatus').className = 'status-dot connected';
+        });
+
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+            document.getElementById('connectionStatus').className = 'status-dot';
         });
     </script>
 </body>
