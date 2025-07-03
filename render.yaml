@@ -2,11 +2,13 @@ services:
   - type: web
     name: steve-perry-ai-voice-assistant
     env: python
+    region: oregon
+    plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT app:app
+    startCommand: gunicorn --worker-class gevent -w 1 --bind 0.0.0.0:$PORT app:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.18
+        value: 3.11.0
       - key: PORT
         generateValue: true
       - key: TWILIO_ACCOUNT_SID

@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "Starting with Thread worker..."
+gunicorn --worker-class gthread --workers 1 --threads 2 --bind 0.0.0.0:$PORT app:app
