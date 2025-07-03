@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Assistant Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 1.1em;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .panel h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .status-idle { background-color: #95a5a6; }
+        .status-ringing { background-color: #f39c12; animation: pulse 1s infinite; }
+        .status-active { background-color: #27ae60; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .call-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        input[type="tel"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+            transform: translateY(-2px);
+        }
+
+        .transcription-box {
+            background: white;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 150px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            line-height: 1.6;
+        }
+
+        .reply-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .smart-replies {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .smart-reply-btn {
+            background: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .smart-reply-btn:hover {
+            background: #d5dbdb;
+            border-color: #95a5a6;
+        }
+
+        .conversation-history {
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .message.user {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+
+        .message.bot {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .message-time {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 AI Voice Assistant</h1>
+            <p>Steve Perry AI Voice Assistant Dashboard</p>
+        </div>
+
+        <div class="dashboard">
+            <!-- Call Control Panel -->
+            <div class="panel">
+                <h3>📞 Call Control</h3>
+                <div class="call-controls">
+                    <input type="tel" id="phoneNumber" placeholder="+1234567890" value="+1234567890">
+                    <button class="btn-primary" onclick="startCall()">Start Call</button>
+                    <button class="btn-danger" onclick="endCall()">End Call</button>
+                </div>
+                <div>
+                    <strong>Status:</strong> 
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    <span id="callStatus">Idle</span>
+                </div>
+            </div>
+
+            <!-- Live Transcription -->
+            <div class="panel">
+                <h3>🎯 Live Transcription</h3>
+                <div class="transcription-box" id="transcription">
+                    Waiting for speech...
+                </div>
+            </div>
+
+            <!-- Reply Interface -->
+            <div class="panel">
+                <h3>💬 Reply Interface</h3>
+                <textarea class="reply-input" id="customReply" placeholder="Type your custom reply here..."></textarea>
+                <button class="btn-success" onclick="sendCustomReply()">Send Custom Reply</button>
+                
+                <div class="smart-replies" id="smartReplies">
+                    <!-- Smart replies will be populated here -->
+                </div>
+            </div>
+
+            <!-- Conversation History -->
+            <div class="panel">
+                <h3>📝 Conversation History</h3>
+                <div class="conversation-history" id="conversationHistory">
+                    <!-- Conversation messages will appear here -->
+                </div>
+            </div>
+
+            <!-- Memory & Analytics -->
+            <div class="panel full-width">
+                <h3>🧠 Memory & Analytics</h3>
+                <button class="btn-primary" onclick="loadMemory()">Load Memory</button>
+                <button class="btn-primary" onclick="clearMemory()">Clear Memory</button>
+                <div id="memoryDisplay" style="margin-top: 15px; max-height: 200px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.IO
+        const socket = io();
+
+        // Global state
+        let currentCallSid = null;
+
+        // Socket event handlers
+        socket.on('call_status_update', function(data) {
+            updateCallStatus(data.status);
+            updateConversationHistory(data.conversation_history);
+            currentCallSid = data.call_sid;
+        });
+
+        socket.on('transcription_update', function(data) {
+            updateTranscription(data.transcription);
+            updateSmartReplies(data.smart_replies);
+        });
+
+        // UI Update Functions
+        function updateCallStatus(status) {
+            const statusElement = document.getElementById('callStatus');
+            const indicatorElement = document.getElementById('statusIndicator');
+            
+            statusElement.textContent = status;
+            indicatorElement.className = 'status-indicator';
+            
+            switch(status.toLowerCase()) {
+                case 'idle':
+                    indicatorElement.classList.add('status-idle');
+                    break;
+                case 'ringing':
+                    indicatorElement.classList.add('status-ringing');
+                    break;
+                case 'in progress':
+                    indicatorElement.classList.add('status-active');
+                    break;
+            }
+        }
+
+        function updateTranscription(text) {
+            document.getElementById('transcription').textContent = text || 'Waiting for speech...';
+        }
+
+        function updateSmartReplies(replies) {
+            const container = document.getElementById('smartReplies');
+            container.innerHTML = '';
+            
+            if (replies && replies.length > 0) {
+                replies.forEach((reply, index) => {
+                    const button = document.createElement('button');
+                    button.className = 'smart-reply-btn';
+                    button.textContent = `${index + 1}. ${reply}`;
+                    button.onclick = () => sendReply(reply);
+                    container.appendChild(button);
+                });
+            }
+        }
+
+        function updateConversationHistory(history) {
+            const container = document.getElementById('conversationHistory');
+            container.innerHTML = '';
+            
+            if (history && history.length > 0) {
+                history.slice(-10).forEach(message => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${message.speaker}`;
+                    
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'message-time';
+                    timeDiv.textContent = new Date(message.timestamp).toLocaleTimeString();
+                    
+                    const contentDiv = document.createElement('div');
+                    contentDiv.textContent = message.message;
+                    
+                    messageDiv.appendChild(timeDiv);
+                    messageDiv.appendChild(contentDiv);
+                    container.appendChild(messageDiv);
+                });
+                
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        // Call Control Functions
+        async function startCall() {
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            if (!phoneNumber) {
+                alert('Please enter a phone number');
+                return;
+            }
+
+            try {
+                const response = await fetch('/start_call', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ phone_number: phoneNumber })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Call started successfully');
+                } else {
+                    alert('Error starting call: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error starting call: ' + error.message);
+            }
+        }
+
+        async function endCall() {
+            try {
+                const response = await fetch('/end_call', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Call ended successfully');
+                } else {
+                    alert('Error ending call: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error ending call: ' + error.message);
+            }
+        }
+
+        // Reply Functions
+        async function sendCustomReply() {
+            const replyText = document.getElementById('customReply').value;
+            if (!replyText.trim()) {
+                alert('Please enter a reply');
+                return;
+            }
+
+            await sendReply(replyText);
+            document.getElementById('customReply').value = '';
+        }
+
+        async function sendReply(replyText) {
+            try {
+                const response = await fetch('/send_reply', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ reply: replyText })
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    alert('Error sending reply: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error sending reply: ' + error.message);
+            }
+        }
+
+        // Memory Functions
+        async function loadMemory() {
+            try {
+                const response = await fetch('/get_memory');
+                const memory = await response.json();
+                
+                const display = document.getElementById('memoryDisplay');
+                display.innerHTML = '<pre>' + JSON.stringify(memory, null, 2) + '</pre>';
+            } catch (error) {
+                alert('Error loading memory: ' + error.message);
+            }
+        }
+
+        function clearMemory() {
+            if (confirm('Are you sure you want to clear all memory? This cannot be undone.')) {
+                // Implementation would require a backend endpoint
+                alert('Clear memory functionality would be implemented here');
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCallStatus('Idle');
+            console.log('Dashboard initialized');
+        });
+    </script>
+</body>
+</html>
