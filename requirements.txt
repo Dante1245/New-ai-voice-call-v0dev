@@ -6,7 +6,7 @@ Werkzeug==2.3.7
 # WebSocket and Async Support
 python-socketio==5.9.0
 python-engineio==4.7.1
-gevent>=22.10.2
+gevent>=22.10.2,<24.0.0
 gevent-websocket==0.10.1
 
 # HTTP Requests and Utilities
